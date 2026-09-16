@@ -356,7 +356,62 @@ circbuf.ko
 
 普通用户态程序通常最终得到 ELF executable；Linux Driver 外部模块则最终得到 `.ko`。
 
-## 10. 当前进度
+## 10. 第一次 ARM64 外部内核模块交叉编译
+
+在 Ubuntu Host、且当前目录位于：
+
+```text
+~/embedded/projects/linux-device-drivers/linux-character-device-driver
+```
+
+执行：
+
+```bash
+make \
+  KDIR=~/embedded/buildroot/output/build/linux-6.18.7 \
+  ARCH=arm64 \
+  CROSS_COMPILE=~/embedded/buildroot/output/host/bin/aarch64-buildroot-linux-gnu-
+```
+
+这条命令不修改原仓库 Makefile，而是在命令行临时覆盖/传入构建变量：
+
+- `KDIR` = Kernel Directory：指定要针对 Buildroot 的 Linux 6.18.7 Kernel Build Tree 编译。
+- `ARCH` = Architecture：目标架构，这里是 `arm64`。
+- `CROSS_COMPILE` = Cross Compile Prefix：交叉编译工具前缀。末尾的 `-` 不能省略，因为 Kbuild 会在后面自动拼接 `gcc`、`ld`、`ar` 等工具名。
+
+例如：
+
+```text
+CROSS_COMPILE + gcc
+→ aarch64-buildroot-linux-gnu-gcc
+```
+
+如果成功，当前目录应生成：
+
+```text
+circbuf.o
+circbuf.mod.o
+circbuf.ko
+modules.order
+Module.symvers
+```
+
+其中最重要的是：
+
+```text
+circbuf.ko
+```
+
+随后检查：
+
+```bash
+ls -lh circbuf.ko
+file circbuf.ko
+```
+
+`file` 用于识别文件类型和目标架构；期望 `circbuf.ko` 显示为 ARM AArch64 的 ELF relocatable object/module，而不是 x86-64。
+
+## 11. 当前进度
 
 已完成：
 
@@ -369,23 +424,14 @@ circbuf.ko
 [✓] 找到 Buildroot Linux 6.18.7 Kernel Build Tree
 [✓] 区分 linux-6.18.7 与 linux-headers-6.18.7
 [✓] 理解 .c / .h / .o / .ko / .md / Makefile
+[ ] 交叉编译 circbuf.ko
+[ ] 传入 QEMU ARM64 Target
+[ ] insmod 加载模块
+[ ] 验证 /dev/circbuf
+[ ] 完成 read / write / ioctl 测试
 ```
 
-下一步：使用：
-
-```text
-KDIR=~/embedded/buildroot/output/build/linux-6.18.7
-ARCH=arm64
-CROSS_COMPILE=~/embedded/buildroot/output/host/bin/aarch64-buildroot-linux-gnu-
-```
-
-对 `circbuf.c` 做 ARM64 Kernel Module 交叉编译，目标得到：
-
-```text
-circbuf.ko
-```
-
-## 11. 本项目最终要学会什么
+## 12. 本项目最终要学会什么
 
 今晚阶段完成后，至少应该能解释：
 
