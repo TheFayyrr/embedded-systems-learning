@@ -18,6 +18,19 @@ cc1[...]   segfault ... likely on CPU 9
 
 没有出现 `Out of memory` / `OOM` 记录。
 
+后续将 Buildroot 并行度从 32 降到 16 后，构建 `host-libglib2-2.88.3` 时仍再次出现两个独立的 Host GCC 崩溃：
+
+```text
+/usr/bin/gcc ... gvarianttypeinfo.c
+Segmentation fault (core dumped)
+
+/usr/bin/gcc ... gatomicarray.c
+during IPA pass: modref
+internal compiler error: Segmentation fault
+```
+
+这次失败发生在 Host package（`host-libglib2`），使用的是 Ubuntu 主机编译器 `/usr/bin/gcc`，不是 ARM64 交叉编译器。说明把并行度从 32 降到 16 仍不足以让当前主机稳定。
+
 ## 当前主机信息
 
 ```text
@@ -46,15 +59,9 @@ NVMe: about 39–45°C
 
 Intel 已公开确认部分第 13/14 代桌面处理器存在 Vmin Shift Instability 问题，可能表现为系统不稳定。Intel 后续发布了 0x12B、0x12F 等微码更新，并继续建议用户安装最新主板 BIOS、使用 Intel Default Settings。
 
-本机的 BIOS `H.20` 日期为 2023-10-27，明显早于 MSI 为 `Z790 GAMING PLUS WIFI` 发布的后续稳定性 BIOS。MSI 官方后续版本包括：
+本机的 BIOS `H.20` 日期为 2023-10-27，明显早于 MSI 为 `Z790 GAMING PLUS WIFI` 发布的后续稳定性 BIOS。
 
-```text
-7E06vH7   2024-10-09   Update CPU Microcode 0x12B
-7E06vH9   2025-08-18   security/ME firmware updates
-7E06vHA   2026-05-20   Update Micro Code + newer ME firmware
-```
-
-因此当前应优先更新 BIOS，而不是继续用 `BR2_JLEVEL=32` 对旧 BIOS 配置做高并行压力测试。
+因此当前应优先更新 BIOS，而不是继续用较高并行度对旧 BIOS 配置做压力测试。
 
 ### 关于当前 `microcode 0x133`
 
@@ -68,15 +75,16 @@ Linux 当前报告的 `0x133` 说明操作系统已经加载了较新的 CPU mic
 2. `cc1` 在不同 CPU 上发生崩溃；
 3. Kernel 日志中没有 OOM 证据；
 4. 之前还出现过不同 GCC/不同源码文件上的 internal compiler error；
-5. CPU 型号为 `Intel Core i9-14900K`；
-6. 主板 BIOS 仍是 2023-10-27 的 `H.20`，早于 Intel/MSI 后续稳定性修复；
-7. 空闲温度正常，暂时没有明显的空闲过热证据。
+5. `JLEVEL=16` 时，Host GCC `/usr/bin/gcc` 仍在两个不同 GLib 源文件上随机崩溃；
+6. CPU 型号为 `Intel Core i9-14900K`；
+7. 主板 BIOS 仍是 2023-10-27 的 `H.20`，早于 Intel/MSI 后续稳定性修复；
+8. 空闲温度正常，暂时没有明显的空闲过热证据。
 
-因此目前应优先排查 **BIOS/CPU 平台设置与内存稳定性**，而不是把错误简单归因于 Buildroot 或 GCC。
+因此目前应优先排查 **BIOS/CPU 平台设置与内存稳定性**，而不是把错误简单归因于 Buildroot、GLib 或 GCC。
 
 ## 下一步诊断顺序
 
-1. 停止使用 `BR2_JLEVEL=32`，临时改为 `4` 或 `8`。
+1. 暂停用 `BR2_JLEVEL=16/32` 继续硬跑。
 2. 从 MSI 官方 `Z790 GAMING PLUS WIFI` 支持页下载最新正式版 BIOS，并使用 MSI M-FLASH 更新。
 3. BIOS 更新完成后先加载默认设置，并使用 `Intel Default Settings`；暂时关闭 XMP、CPU 超频、手动降压等变量。
 4. 进入 Linux 后重新确认：
@@ -99,7 +107,7 @@ Buildroot 可以继续使用已经完成的中间结果，不需要删除 `outpu
 make 2>&1 | tee -a build.log
 ```
 
-已完成的 package 通常会被跳过，失败的 glibc 目标会继续/重新补编译。
+已完成的 package 通常会被跳过；失败的 `host-libglib2` 会继续/重新补编译未完成目标。
 
 ## 工程经验
 
@@ -108,3 +116,4 @@ make 2>&1 | tee -a build.log
 - 高并行编译是很好的稳定性压力测试，但不应在已知不稳定时继续用最高并发硬跑。
 - “空闲温度正常”不能证明高负载下一定稳定。
 - OS 报告的新 microcode 不等价于“旧 BIOS 已经没问题”；平台初始化与 BIOS 默认功耗/电压策略同样重要。
+- 当 `Host GCC` 与 `Cross GCC` 都在不同源码上随机崩溃时，应优先怀疑主机平台稳定性，而不是某个单独 package。
