@@ -292,22 +292,50 @@ Swap used: 0 B
 
 这样可以在“构建速度”和“稳定性”之间做可控权衡，而不是一次性回到最大并发。
 
-## 11. 当前进度
+## 11. 第一次完整镜像构建成功
 
-`host-mpfr` 已修复，正在继续完整 Buildroot 构建。当前已经完成 Linux Headers，并开始下载/构建 glibc 与 ARM64 Toolchain 相关组件。
+后续使用 `BR2_JLEVEL=16` 完成了完整 Buildroot 构建，最终 `output/images` 生成：
 
-下一阶段验收目标：
+```text
+Image         13M   ARM64 Linux Kernel Image
+rootfs.ext2   60M   EXT2/EXT4 Root Filesystem Image
+rootfs.ext4 -> rootfs.ext2   symbolic link
+start-qemu.sh 831B  QEMU 启动脚本
+```
+
+检查命令：
 
 ```bash
 ls -lh output/images
 ```
 
-期望看到类似：
+实际结果：
 
 ```text
-Image
-rootfs.ext4
-start-qemu.sh
+-rw-r--r-- 1 ubrsl ubrsl 13M Image
+-rw-r--r-- 1 ubrsl ubrsl 60M rootfs.ext2
+lrwxrwxrwx 1 ubrsl ubrsl 11 rootfs.ext4 -> rootfs.ext2
+-rwxr-xr-x 1 ubrsl ubrsl 831 start-qemu.sh
 ```
 
-随后通过 QEMU 启动 ARM64 Linux。
+说明 Buildroot 已成功生成 ARM64 Kernel、RootFS 和 QEMU 启动脚本。
+
+下一步：
+
+```bash
+./output/images/start-qemu.sh
+```
+
+进入 QEMU ARM64 Linux 后检查：
+
+```bash
+uname -m
+```
+
+期望：
+
+```text
+aarch64
+```
+
+到这一步才完成第一阶段的最终验收：x86_64 Host 使用 Buildroot 交叉构建 ARM64 Linux，并在 QEMU 中成功启动。
