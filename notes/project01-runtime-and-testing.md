@@ -227,7 +227,151 @@ basic_test: PASS
 
 只有跑通 `basic_test: PASS`，才算完成这个项目的核心功能复现。
 
-## 7. 当前进度
+## 7. 交叉编译 basic_test 用户态测试程序
+
+驱动已经在 Target Kernel 中运行，接下来要编译仓库自带的用户态测试程序：
+
+```text
+tests/basic_test.c
+```
+
+这个程序会真正调用：
+
+```text
+open()
+write()
+read()
+ioctl()
+close()
+```
+
+从 User Space 访问 `/dev/circbuf`。
+
+### Host：进入 tests 目录
+
+```bash
+cd ~/embedded/projects/linux-device-drivers/linux-character-device-driver/tests
+```
+
+### Host：使用 Buildroot ARM64 交叉编译器编译 basic_test
+
+```bash
+make \
+  CC=~/embedded/buildroot/output/host/bin/aarch64-buildroot-linux-gnu-gcc \
+  basic_test
+```
+
+这里：
+
+- `CC` = C Compiler，指定 C 编译器。
+- 不能直接使用 Host 的 `/usr/bin/gcc`，否则会生成 x86_64 程序，无法在 ARM64 Target 运行。
+- `tests/Makefile` 默认带 `-static`，因此会尝试生成静态链接的可执行文件，适合最小化 Buildroot Target。
+
+### Host：确认 basic_test 的目标架构
+
+```bash
+file basic_test
+```
+
+期望看到类似：
+
+```text
+ELF 64-bit LSB executable, ARM aarch64, ... statically linked ...
+```
+
+重点是：
+
+```text
+ARM aarch64
+```
+
+## 8. 把 basic_test 传入 QEMU ARM64 Target
+
+如果 Host 的 HTTP Server 是在这个目录启动的：
+
+```text
+~/embedded/projects/linux-device-drivers/linux-character-device-driver
+```
+
+并监听：
+
+```text
+8001
+```
+
+那么 Target 可以直接下载：
+
+```bash
+cd /tmp
+wget http://10.0.2.2:8001/tests/basic_test
+```
+
+下载后：
+
+```bash
+ls -lh basic_test
+chmod +x basic_test
+```
+
+这里 `chmod +x` 是给用户态可执行程序增加 execute permission（执行权限）。
+
+注意：之前的 `circbuf.ko` 不需要 `chmod +x`，因为它不是由 User Space shell 直接执行，而是由 Kernel 通过 `insmod` 加载。
+
+## 9. 运行 basic_test
+
+Target 中执行：
+
+```bash
+./basic_test
+```
+
+测试程序的调用链是：
+
+```text
+basic_test
+   ↓ open("/dev/circbuf")
+/dev/circbuf
+   ↓
+circbuf_open()
+   ↓
+write("kernel boundary test")
+   ↓
+circbuf_write()
+   ↓
+Kernel Circular Buffer
+   ↓
+read()
+   ↓
+circbuf_read()
+   ↓
+ioctl(CIRCBUF_GET_STATS)
+   ↓
+circbuf_ioctl()
+```
+
+如果核心功能正确，预期输出类似：
+
+```text
+read back: "kernel boundary test" (20 bytes)
+capacity=4096 used=0 available=4096 reads=1 writes=1
+basic_test: PASS
+```
+
+看到：
+
+```text
+basic_test: PASS
+```
+
+说明已经完成：
+
+```text
+User Space → System Call → /dev/circbuf → Kernel Driver → Circular Buffer → User Space
+```
+
+这才是这个开源 Character Device Driver 项目的核心功能复现成功。
+
+## 10. 当前进度
 
 ```text
 [✓] clone 开源项目
