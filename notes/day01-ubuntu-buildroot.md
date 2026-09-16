@@ -38,28 +38,51 @@ mkdir -p ~/embedded
 cd ~/embedded
 ```
 
-- `mkdir`：make directory，创建目录
-- `cd`：change directory，切换目录
-- `~`：当前用户的 Home 目录
+- `mkdir`：**make directory**，创建目录
+- `cd`：**change directory**，切换目录
+- `~`：当前用户的 **Home directory（家目录）**
 
-## 3. 常用 Linux 命令
+## 3. 常用 Linux 命令：名称来源 + 中文含义
 
-| 命令 | 含义 |
-| --- | --- |
-| `pwd` | 显示当前工作目录 |
-| `ls` | 列出目录内容 |
-| `cd` | 切换目录 |
-| `cd ..` | 返回上一级目录 |
-| `mkdir` | 创建目录 |
-| `cat` | 查看文本文件 |
-| `grep` | 搜索文本 |
-| `|` | Pipe，把前一个命令的输出交给后一个命令 |
-| `sudo apt install` | 安装 Ubuntu 软件包 |
-| `git clone` | 克隆 Git 仓库 |
-| `git status` | 查看 Git 工作区状态 |
-| `make` | 执行构建系统 |
-| `nproc` | 查看 Linux 可见的 logical processors 数量 |
-| `free -h` | 查看内存和 Swap 使用情况 |
+> 后续学习命令时，不只记“这个命令能干什么”，还要尽量记住它的英文全称、英文单词或命名来源。这样更容易长期记忆。
+
+| 命令 | 英文全称 / 名称来源 | 中文含义 | 记忆方法 |
+| --- | --- | --- | --- |
+| `pwd` | **print working directory** | 显示当前工作目录 | print（打印）+ working directory（当前工作目录） |
+| `ls` | **list** | 列出目录内容 | `ls` 来自 list 的命令名，不需要硬凑缩写全称 |
+| `cd` | **change directory** | 切换目录 | change（改变）+ directory（目录） |
+| `cd ..` | `cd` = **change directory**；`..` = **parent directory** | 返回上一级目录 | `..` 表示父目录 |
+| `mkdir` | **make directory** | 创建目录 | make（创建）+ directory（目录） |
+| `cat` | **concatenate** | 连接文件内容；也常用于直接查看文本文件 | concatenate 原意是“连接、串接”，查看单个文件只是它的常见用法 |
+| `grep` | 名称来源于早期 `ed` 编辑器命令 `g/re/p`：**global / regular expression / print** | 按模式搜索文本 | 可以记成“全局查找正则表达式并打印匹配行” |
+| `\|` | **pipe** | 把前一个命令的输出交给后一个命令 | 像一根“管道”，把数据从左边送到右边 |
+| `sudo apt install` | `sudo`：以其他用户权限执行命令，常记作 **superuser do**；`apt` = **Advanced Package Tool**；`install` = 安装 | 安装 Ubuntu 软件包 | 权限提升 + 软件包管理 + 安装 |
+| `git clone` | `Git` 不是需要背诵全称的缩写；`clone` = 克隆 | 克隆 Git 仓库到本地 | clone 就是“复制一份仓库” |
+| `git status` | `status` = 状态 | 查看 Git 工作区状态 | 看哪些文件修改、暂存或未跟踪 |
+| `make` | 英文单词 **make** | 执行构建规则，完成编译/生成等任务 | make = “把目标做出来” |
+| `nproc` | 名称可理解为 **number of processors / processing units** 的缩写式命名 | 查看当前系统可用的处理单元数量 | `n` = number，`proc` = processor/process 的简写形式 |
+| `free -h` | `free` = 空闲；`-h` = **human-readable** | 查看内存和 Swap 使用情况 | `-h` 让容量显示成 KiB/MiB/GiB 等人类更容易阅读的格式 |
+
+### 一个原则
+
+有些 Linux 命令有明确的英文展开，例如：
+
+```text
+pwd   → print working directory
+cd    → change directory
+mkdir → make directory
+```
+
+但也有些命令只是一个历史命令名或英文单词，例如：
+
+```text
+ls
+Git
+make
+free
+```
+
+这种情况下不要为了记忆而强行编一个“官方全称”。应该记住它真实的名称来源和作用。
 
 ## 4. 下载 Buildroot
 
