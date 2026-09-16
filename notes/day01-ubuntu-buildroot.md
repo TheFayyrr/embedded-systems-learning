@@ -58,6 +58,8 @@ cd ~/embedded
 | `git clone` | 克隆 Git 仓库 |
 | `git status` | 查看 Git 工作区状态 |
 | `make` | 执行构建系统 |
+| `nproc` | 查看 Linux 可见的 logical processors 数量 |
+| `free -h` | 查看内存和 Swap 使用情况 |
 
 ## 4. 下载 Buildroot
 
@@ -256,7 +258,41 @@ make host-mpfr 2>&1 | tee host-mpfr.log
 tail -n 120 host-mpfr.log
 ```
 
-## 10. 当前进度
+## 10. 主机资源与并行度判断
+
+检查：
+
+```bash
+nproc
+free -h
+```
+
+当前结果：
+
+```text
+logical processors: 32
+RAM total: 62 GiB
+RAM available: 55 GiB
+Swap total: 9.3 GiB
+Swap used: 0 B
+```
+
+这说明当前主机资源非常充足，至少从当前时刻看并不存在明显的 RAM 紧张。
+
+注意：`nproc=32` 表示 Linux 可见 32 个 logical processors，不等于一定有 32 个物理核心。
+
+考虑到自动并行曾触发 GCC 异常，而 `JLEVEL=1` 已验证稳定，后续并行度采用逐级试探：
+
+```text
+1 → 已验证稳定
+4 → 下一步推荐测试
+8 → 4 稳定后再测试
+0 → 暂不恢复自动模式
+```
+
+这样可以在“构建速度”和“稳定性”之间做可控权衡，而不是一次性回到最大并发。
+
+## 11. 当前进度
 
 `host-mpfr` 已修复，正在继续完整 Buildroot 构建。当前已经完成 Linux Headers，并开始下载/构建 glibc 与 ARM64 Toolchain 相关组件。
 
