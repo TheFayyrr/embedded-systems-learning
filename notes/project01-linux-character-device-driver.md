@@ -209,7 +209,154 @@ circbuf.ko
 
 `.ko` = `Kernel Object`，即 Linux 可加载内核模块文件。
 
-## 7. 当前进度
+## 7. 查看 Makefile 与 Buildroot Kernel 目录
+
+执行：
+
+```bash
+cat Makefile
+```
+
+实际内容：
+
+```makefile
+obj-m += circbuf.o
+
+KDIR ?= /lib/modules/$(shell uname -r)/build
+PWD  := $(shell pwd)
+
+.PHONY: all clean tests
+
+all:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) clean
+
+tests:
+	$(MAKE) -C tests
+```
+
+其中：
+
+- `obj-m`：告诉 Linux Kbuild，这个目标要作为可加载 Kernel Module 构建；`m` 可以记成 module。
+- `circbuf.o`：由 `circbuf.c` 编译得到的 Object File（目标文件/中间文件）。
+- `KDIR` = Kernel Directory：内核构建目录。
+- `PWD` = Print Working Directory 的环境/Make 变量形式，这里保存当前项目目录路径。
+- `.PHONY` 不是文件后缀，也不是文件名；它是 Make 的特殊声明，表示 `all`、`clean`、`tests` 是“动作目标”，而不是要生成同名文件。
+- `$(MAKE)`：调用 make。
+- `-C $(KDIR)`：先切换到 Kernel Build Directory，再执行构建。
+- `M=$(PWD)`：告诉内核构建系统，外部模块源码位于当前项目目录。
+- `modules`：要求 Kernel Build System 构建外部内核模块。
+
+查找 Buildroot 的 Linux 相关构建目录：
+
+```bash
+ls ~/embedded/buildroot/output/build | grep '^linux-'
+```
+
+实际结果：
+
+```text
+linux-6.18.7
+linux-headers-6.18.7
+```
+
+注意：这两个是目录名，不是“后缀名不同的两个文件”。
+
+### `linux-6.18.7`
+
+这是 Buildroot 实际构建 Linux Kernel 6.18.7 使用的源码/构建目录。
+
+后续编译外部驱动模块时，真正需要的 `KDIR` 就是这一类完整 Kernel Build Tree：
+
+```text
+~/embedded/buildroot/output/build/linux-6.18.7
+```
+
+里面包含内核源码、生成后的配置、Makefile、符号版本信息以及外部模块编译所需内容。
+
+### `linux-headers-6.18.7`
+
+这是 Buildroot 为 Toolchain / C Library 等准备的 Linux Kernel Headers 包。
+
+它主要提供 User Space 与 Kernel 之间公开的接口头文件（UAPI，User-space API）。
+
+它不是我们当前外部 Kernel Module 编译时应该使用的完整 Kernel Build Tree。
+
+因此当前记忆：
+
+```text
+编译用户态程序
+→ 主要使用 Toolchain / sysroot / Linux headers
+
+编译 Kernel Module
+→ 使用完整 linux-6.18.7 Kernel Build Tree
+```
+
+## 8. 常见文件后缀到底是什么
+
+当前项目中最容易混淆的几个后缀：
+
+| 名称 | 英文 | 作用 | 当前项目中的例子 |
+| --- | --- | --- | --- |
+| `.c` | C Source File | C 源代码，给编译器读取 | `circbuf.c` |
+| `.h` | Header File | 头文件，放声明、宏、结构体、接口定义 | `circbuf.h` |
+| `.o` | Object File | 编译后的目标文件，是链接前的中间产物 | `circbuf.o` |
+| `.ko` | Kernel Object | Linux 可加载内核模块 | `circbuf.ko` |
+| `.md` | Markdown | 文档格式 | `README.md` |
+
+另外：
+
+### Makefile
+
+`Makefile` 通常没有扩展名。
+
+它不是 C/C++ 源文件，而是给 `make` 构建工具读取的“构建规则文件”。
+
+### `.PHONY`
+
+`.PHONY` 虽然以点开头，但它不是文件后缀。
+
+它是 Make 的特殊目标（special target），用于声明某些 target 只是命令动作，例如：
+
+```text
+all
+clean
+tests
+```
+
+### `6.18.7`
+
+`linux-6.18.7` 中的 `6.18.7` 是 Linux Kernel Version（内核版本号），不是文件后缀。
+
+## 9. 从 `.c` 到 `.ko` 的关系
+
+当前驱动最终会经历类似：
+
+```text
+circbuf.c
+   │
+   │ C compiler
+   ▼
+circbuf.o
+   │
+   │ Linux Kernel Build System / Kbuild
+   ▼
+circbuf.ko
+```
+
+可以先这样记：
+
+```text
+.c  = 人写的 C 源代码
+.o  = 编译后的中间机器码文件
+.ko = 最终可以装进 Linux Kernel 的模块文件
+```
+
+普通用户态程序通常最终得到 ELF executable；Linux Driver 外部模块则最终得到 `.ko`。
+
+## 10. 当前进度
 
 已完成：
 
@@ -218,18 +365,27 @@ circbuf.ko
 [✓] clone linux-device-drivers
 [✓] 进入 linux-character-device-driver
 [✓] 确认 circbuf.c / circbuf.h / Makefile / tests
+[✓] 查看并理解 Makefile 基本结构
+[✓] 找到 Buildroot Linux 6.18.7 Kernel Build Tree
+[✓] 区分 linux-6.18.7 与 linux-headers-6.18.7
+[✓] 理解 .c / .h / .o / .ko / .md / Makefile
 ```
 
-下一步不是立即盲目编译，而是先确认：
+下一步：使用：
 
 ```text
-1. 当前 Makefile 如何调用 Linux Kernel Build System
-2. Buildroot 实际使用的 Linux Kernel 构建目录名称
+KDIR=~/embedded/buildroot/output/build/linux-6.18.7
+ARCH=arm64
+CROSS_COMPILE=~/embedded/buildroot/output/host/bin/aarch64-buildroot-linux-gnu-
 ```
 
-然后再执行 ARM64 Kernel Module 的交叉编译。
+对 `circbuf.c` 做 ARM64 Kernel Module 交叉编译，目标得到：
 
-## 8. 本项目最终要学会什么
+```text
+circbuf.ko
+```
+
+## 11. 本项目最终要学会什么
 
 今晚阶段完成后，至少应该能解释：
 
