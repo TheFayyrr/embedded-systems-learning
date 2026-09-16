@@ -309,33 +309,44 @@ start-qemu.sh 831B  QEMU 启动脚本
 ls -lh output/images
 ```
 
-实际结果：
-
-```text
--rw-r--r-- 1 ubrsl ubrsl 13M Image
--rw-r--r-- 1 ubrsl ubrsl 60M rootfs.ext2
-lrwxrwxrwx 1 ubrsl ubrsl 11 rootfs.ext4 -> rootfs.ext2
--rwxr-xr-x 1 ubrsl ubrsl 831 start-qemu.sh
-```
-
 说明 Buildroot 已成功生成 ARM64 Kernel、RootFS 和 QEMU 启动脚本。
 
-下一步：
+## 12. QEMU ARM64 启动成功
+
+使用：
 
 ```bash
 ./output/images/start-qemu.sh
 ```
 
-进入 QEMU ARM64 Linux 后检查：
+系统正常启动并进入 Buildroot 登录界面。以 `root` 登录后验证：
 
 ```bash
 uname -m
+uname -a
 ```
 
-期望：
+实际结果：
 
 ```text
 aarch64
+Linux buildroot 6.18.7 #1 SMP Wed Sep 16 16:49:33 CST 2026 aarch64 GNU/Linux
 ```
 
-到这一步才完成第一阶段的最终验收：x86_64 Host 使用 Buildroot 交叉构建 ARM64 Linux，并在 QEMU 中成功启动。
+这说明第一阶段已经完成：
+
+```text
+x86_64 Ubuntu Host
+        ↓
+Buildroot
+        ↓
+ARM64 Cross Toolchain
+        ↓
+Linux Kernel + RootFS
+        ↓
+QEMU
+        ↓
+ARM64 Linux 成功启动
+```
+
+下一阶段进入 Cross Compilation 实战：在 x86_64 Host 上编写自己的 C 程序，使用 Buildroot 生成的 ARM64 Cross Compiler 交叉编译，再把 ARM64 ELF 程序放入/传入 Target 并运行。
